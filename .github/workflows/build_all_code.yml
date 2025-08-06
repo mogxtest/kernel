@@ -65,23 +65,21 @@ jobs:
         id: extract-prs
         run: |
           # 提取所有PR链接
-          PR_LINKS=$(echo "${{ github.event.comment.body }}" | grep -o 'https://github.com/[^/ ]*/pull/[0-9]*' | sort | uniq)
-           
+          PR_LINKS=$(echo "${{ github.event.comment.body }}" | grep -oE 'https://github.com/[^/ ]+/pull/[0-9]+' | sort | uniq)
+       
           # 如果没有链接，添加当前PR
-          if [ -z "$PR_LINKS" ] && [ "${{ steps.init.outputs.trigger_type }}" == "pr" ]; then
-            CURRENT_PR="https://github.com/$GITHUB_REPOSITORY/pull/${{ steps.init.outputs.source_number }}"
+          if [ -z "$PR_LINKS" ] && [ "${{ github.event.issue.pull_request }}" == "true" ]; then
+            CURRENT_PR="https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number }}"
             PR_LINKS="$CURRENT_PR"
           fi
           
-          # 转换为JSON数组
-          PR_LINKS_JSON=$(echo "$PR_LINKS" | jq -R -s 'split("\n") | map(select(. != ""))')
-          echo "pr_links=$PR_LINKS_JSON"
-          echo "pr_links=$PR_LINKS_JSON" >> $GITHUB_OUTPUT
+          # 转换为JSON数组并用单行格式输出
+          PR_LINKS_JSON=$(echo "$PR_LINKS" | jq -R -s 'split("\n") | map(select(. != "")) | @json')
+          echo "pr_links=${PR_LINKS_JSON}"
+          echo "pr_links=${PR_LINKS_JSON}" >> $GITHUB_OUTPUT
           
           echo "Detected PRs:"
           echo "$PR_LINKS"
-
-          echo "aaaa"
  
       # 步骤3: 验证PR状态
       - name: Validate PRs
