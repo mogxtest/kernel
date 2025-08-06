@@ -222,14 +222,7 @@ jobs:
               \"body\": \"🔨 编译进行中... [查看进度]($RUN_URL)\\n预计耗时: 60-90分钟\"
             }"
           
-          # 设置构建环境
-          source build/envsetup.sh
-          
-          # 选择设备配置
-          lunch blueos_device-eng
-          
-          # 并行构建
-          make -j$(nproc) all
+          tree .
         
         # 超时设置
         timeout-minutes: 120
