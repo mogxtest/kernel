@@ -40,22 +40,6 @@ jobs:
            
           # 构建状态链接
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          
-          # 发送初始通知
-          curl -s -X POST \
-            -H "Authorization: Bearer $ORCHESTRATOR_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/comments" \
-            -d "{
-              \"body\": \"🔵 BlueOS CI 构建已启动！\\n\\n[查看构建进度]($RUN_URL)\"
-            }"
-            
-          # 添加构建中标签
-          curl -s -X POST \
-            -H "Authorization: Bearer $ORCHESTRATOR_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/labels" \
-            -d '{"labels":["build-in-progress"]}'
             
           # 保存运行URL
           echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
@@ -64,6 +48,8 @@ jobs:
       - name: Extract PR links
         id: extract-prs
         run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
           # 提取所有PR链接
           PR_LINKS=$(echo "${{ github.event.comment.body }}" | grep -oE 'https://github.com/[^/ ]+/pull/[0-9]+' | sort | uniq)
        
