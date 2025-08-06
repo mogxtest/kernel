@@ -21,7 +21,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      ORCHESTRATOR_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN }}
+      ORCHESTRATOR_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN01 }}
       MANIFEST_REPO: https://github.com/blueos-repo/manifests
       
     steps:
