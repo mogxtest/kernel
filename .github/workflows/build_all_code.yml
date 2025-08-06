@@ -21,7 +21,7 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      ORCHESTRATOR_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN01 }}
+      ORCHESTRATOR_TOKEN: ${{ secrets.REPO_ORCHESTRATOR_TOKEN01 }}
       MANIFEST_REPO: https://github.com/mogxtest/manifests
       
     steps:
