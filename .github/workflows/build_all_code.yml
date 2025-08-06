@@ -19,7 +19,7 @@ jobs:
         (github.event.issue.state == 'open') ||
         (github.event.pull_request.state == 'open')
       )
-     runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     container:
       image: ubuntu:22.04
       options: --cpus 8 --memory 16G
