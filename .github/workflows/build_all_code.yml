@@ -20,10 +20,6 @@ jobs:
         (github.event.pull_request.state == 'open')
       )
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:22.04
-      options: --cpus 8 --memory 16G
-      
     env:
       ORCHESTRATOR_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN }}
       MANIFEST_REPO: https://github.com/blueos-repo/manifests
