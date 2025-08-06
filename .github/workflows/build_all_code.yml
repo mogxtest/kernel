@@ -54,7 +54,7 @@ jobs:
           echo "$PR_LINKS"
        
           # 如果没有链接，添加当前PR
-          if [ -z "$PR_LINKS" ] && [ "${{ github.event.issue.pull_request }}" == "true" ]; then
+          if [ -z "$PR_LINKS" ]; then
             CURRENT_PR="https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number }}"
             echo "CURRENT_PR"
             echo $CURRENT_PR
