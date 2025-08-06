@@ -125,7 +125,7 @@ jobs:
       - name: Setup build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y repo git-lfs python3-pip openjdk-11-jdk
+          sudo apt-get install -y repo git-lfs 
           pip3 install PyGithub
            
           git config --global user.name "BlueOS CI Bot"
@@ -139,7 +139,7 @@ jobs:
           cd blueos
           repo init -u $MANIFEST_REPO -m manifest.xml
            
-          # 使用深度克隆和缓存优化
+          # 
           repo sync -j8
  
       # 步骤6: 应用PR变更
@@ -149,18 +149,12 @@ jobs:
            
           # 进度通知
           RUN_URL='${{ steps.init.outputs.run_url }}'
-          curl -s -X POST \
-            -H "Authorization: Bearer $ORCHESTRATOR_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/comments" \
-            -d "{
-              \"body\": \"🔄 正在应用PR变更... [查看进度]($RUN_URL)\"
-            }"
           
           # 应用每个PR
           PR_LINKS='${{ steps.extract-prs.outputs.pr_links }}'
           echo "$PR_LINKS" | jq -r '.[]' | while read link; do
             PARTS=($(echo "$link" | sed -E 's|https://github.com/([^/]+)/([^/]+)/pull/([0-9]+)|\1 \2 \3|'))
+            echo ${PARTS}
             OWNER=${PARTS[0]}
             REPO=${PARTS[1]}
             PR_NUM=${PARTS[2]}
@@ -214,14 +208,7 @@ jobs:
            
           # 进度通知
           RUN_URL='${{ steps.init.outputs.run_url }}'
-          curl -s -X POST \
-            -H "Authorization: Bearer $ORCHESTRATOR_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/comments" \
-            -d "{
-              \"body\": \"🔨 编译进行中... [查看进度]($RUN_URL)\\n预计耗时: 60-90分钟\"
-            }"
-          
+          echo $RUN_URL
           tree .
         
         # 超时设置
