@@ -1,0 +1,83 @@
+name: PR Listener
+ 
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+ 
+jobs:
+  trigger-orchestrator:
+    # 检查：评论包含 "start build"，PR/Issue 开放且无冲突
+    if: |
+      contains(github.event.comment.body, 'start build') &&
+      (
+        (github.event.issue.state == 'open' && github.event.issue.active_lock_reason != 'too heated') ||
+        (github.event.pull_request.state == 'open' && github.event.pull_request.mergeable)
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine build type
+        id: build-type
+        run: |
+          # 检查是否包含多个PR链接
+          if echo '${{ github.event.comment.body }}' | grep -q 'https://github.com/.*/pull/'; then
+            echo "build_type=multi-repo-build" >> $GITHUB_OUTPUT
+          else
+            echo "build_type=single-repo-build" >> $GITHUB_OUTPUT
+          fi
+           
+          # 获取当前仓库信息
+          echo "source_repo=${{ github.repository }}" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          echo "comment_id=${{ github.event.comment.id }}" >> $GITHUB_OUTPUT
+          echo "sender=${{ github.event.sender.login }}" >> $GITHUB_OUTPUT
+ 
+      - name: Trigger Orchestrator
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.REPO_ORCHESTRATOR_TOKEN01 }}
+          script: |
+            const buildType = '${{ steps.build-type.outputs.build_type }}';
+            const sourceRepo = '${{ steps.build-type.outputs.source_repo }}';
+            const prNumber = '${{ steps.build-type.outputs.pr_number }}';
+            const commentId = '${{ steps.build-type.outputs.comment_id }}';
+            const sender = '${{ steps.build-type.outputs.sender }}';
+             
+            // 对于多仓库构建，提取所有PR链接
+            let additionalPayload = {};
+            if (buildType === 'multi-repo-build') {
+              const commentBody = context.payload.comment.body;
+              const prLinks = commentBody.match(/https:\/\/github.com\/[^\/]+\/[^\/]+\/pull\/\d+/g) || [];
+              
+              additionalPayload.repos = prLinks.map(link => {
+                const parts = link.split('/');
+                return {
+                  owner: parts[3],
+                  repo: parts[4],
+                  pr: parseInt(parts[6])
+                };
+              });
+            } else {
+              // 单仓库构建：添加当前PR信息
+              const [owner, repo] = sourceRepo.split('/');
+              additionalPayload.repos = [{
+                owner,
+                repo,
+                pr: parseInt(prNumber)
+              }];
+            }
+            
+            // 触发协调器
+            github.rest.repos.createDispatchEvent({
+              owner: 'mogxtest',
+              repo: 'repo-orchestrator',
+              event_type: buildType,
+              client_payload: {
+                source_repo: sourceRepo,
+                pr_number: prNumber,
+                comment_id: commentId,
+                sender: sender,
+                ...additionalPayload
+              }
+            })
