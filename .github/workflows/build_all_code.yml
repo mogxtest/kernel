@@ -74,9 +74,6 @@ jobs:
       - name: Validate PRs
         run: |
           # 安装必要工具
-          sudo apt-get update
-          sudo apt-get install -y jq
-           
           PR_LINKS='${{ steps.extract-prs.outputs.pr_links }}'
           
           # 验证每个PR状态
@@ -97,6 +94,7 @@ jobs:
             state=$(echo "$PR_JSON" | jq -r '.state')
             merged=$(echo "$PR_JSON" | jq -r '.merged')
             mergeable=$(echo "$PR_JSON" | jq -r '.mergeable')
+            echo "PR_JSON=${PR_JSON} state=${state}  merged=${merged} mergeable=${mergeable}"
             
             if [ "$state" != "open" ] || [ "$merged" == "true" ] || [ "$mergeable" != "true" ]; then
               echo "::error::PR $OWNER/$REPO#$PR_NUM is not buildable"
@@ -110,141 +108,4 @@ jobs:
             exit 1
           fi
  
-      # 步骤4: 设置构建环境
-      - name: Setup build environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y repo git-lfs 
-          pip3 install PyGithub
-           
-          git config --global user.name "BlueOS CI Bot"
-          git config --global user.email "ci@blueos.org"
-          git config --global advice.detachedHead false
- 
-      # 步骤5: 初始化仓库
-      - name: Initialize repo workspace
-        run: |
-          mkdir -p blueos
-          cd blueos
-          repo init -u $MANIFEST_REPO -m manifest.xml
-           
-          # 
-          repo sync -j8
- 
-      # 步骤6: 应用PR变更
-      - name: Apply PR changes
-        run: |
-          cd blueos
-           
-          # 进度通知
-          RUN_URL='${{ steps.init.outputs.run_url }}'
-          
-          # 应用每个PR
-          PR_LINKS='${{ steps.extract-prs.outputs.pr_links }}'
-          echo "$PR_LINKS" | jq -r '.[]' | while read link; do
-            PARTS=($(echo "$link" | sed -E 's|https://github.com/([^/]+)/([^/]+)/pull/([0-9]+)|\1 \2 \3|'))
-            echo ${PARTS}
-            OWNER=${PARTS[0]}
-            REPO=${PARTS[1]}
-            PR_NUM=${PARTS[2]}
-            
-            echo "Applying PR: $OWNER/$REPO#$PR_NUM"
-            
-            # 查找项目路径
-            project_path=$(repo list | grep "$OWNER/$REPO" | awk '{print $1}')
-            
-            if [ -z "$project_path" ]; then
-              echo "::error::Project path not found for $OWNER/$REPO"
-              exit 1
-            fi
-            
-            cd "$project_path"
-            
-            # 获取PR详细信息
-            PR_JSON=$(curl -s -H "Authorization: Bearer $ORCHESTRATOR_TOKEN" \
-              "https://api.github.com/repos/$OWNER/$REPO/pulls/$PR_NUM")
-            
-            head_owner=$(echo "$PR_JSON" | jq -r '.head.repo.owner.login')
-            head_repo=$(echo "$PR_JSON" | jq -r '.head.repo.name')
-            head_ref=$(echo "$PR_JSON" | jq -r '.head.ref')
-            head_sha=$(echo "$PR_JSON" | jq -r '.head.sha')
-            base_ref=$(echo "$PR_JSON" | jq -r '.base.ref')
-            
-            # 添加开发者远程仓库
-            git remote add pr-remote "https://github.com/$head_owner/$head_repo.git" || true
-            git fetch pr-remote "${head_sha}"
-            
-            # 确保主线最新
-            git fetch origin
-            git checkout -B ci-base "origin/$base_ref"
-            
-            # 创建PR分支并合并
-            git checkout -b "pr-$PR_NUM" "$head_sha"
-            git merge ci-base -m "Merge base into PR for CI testing"
-            
-            if [ $? -ne 0 ]; then
-              echo "::error::Merge conflict in $project_path for PR $PR_NUM"
-              exit 1
-            fi
-            
-            cd - >/dev/null
-          done
- 
-      # 步骤7: 执行构建
-      - name: Build BlueOS
-        run: |
-          cd blueos
-           
-          # 进度通知
-          RUN_URL='${{ steps.init.outputs.run_url }}'
-          echo $RUN_URL
-          tree .
-        
-        # 超时设置
-        timeout-minutes: 120
- 
-      # 步骤8: 处理结果
-      - name: Handle build result
-        id: build-result
-        run: |
-          if [ $? -eq 0 ]; then
-            echo "::set-output name=status::success"
-            echo "::set-output name=message::✅ BlueOS 构建成功"
-            echo "::set-output name=label::build-success"
-          else
-            echo "::set-output name=status::failure"
-            echo "::set-output name=message::❌ BlueOS 构建失败"
-            echo "::set-output name=label::build-failed"
-          fi
- 
-      # 步骤9: 发送最终通知
-      - name: Final notification
-        env:
-          GITHUB_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN }}
-        run: |
-          # 构建结果参数
-          STATUS='${{ steps.build-result.outputs.status }}'
-          MESSAGE='${{ steps.build-result.outputs.message }}'
-          LABEL='${{ steps.build-result.outputs.label }}'
-          RUN_URL='${{ steps.init.outputs.run_url }}'
-           
-          # 移除构建中标签
-          curl -s -X DELETE \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/labels/build-in-progress"
-            
-          # 添加结果标签
-          curl -s -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/labels" \
-            -d "{\"labels\":[\"$LABEL\"]}"
-            
-          # 发送结果评论
-          curl -s -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/${{ steps.init.outputs.source_number }}/comments" \
-            -d "{
-              \"body\": \"$MESSAGE\\n\\n构建日志: $RUN_URL\"
-            }"
+      
