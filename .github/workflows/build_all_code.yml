@@ -149,7 +149,7 @@ jobs:
             echo "Applying PR: $OWNER/$REPO#$PR_NUM"
             
             # 查找项目路径
-            project_path=$(repo list | grep "$OWNER/$REPO" | awk '{print $1}')
+            project_path=$(repo list | grep ": $REPO$" | awk '{print $1}')
             
             if [ -z "$project_path" ]; then
               echo "::error::Project path not found for $OWNER/$REPO"
