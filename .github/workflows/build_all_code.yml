@@ -75,10 +75,13 @@ jobs:
           
           # 转换为JSON数组
           PR_LINKS_JSON=$(echo "$PR_LINKS" | jq -R -s 'split("\n") | map(select(. != ""))')
+          echo "pr_links=$PR_LINKS_JSON"
           echo "pr_links=$PR_LINKS_JSON" >> $GITHUB_OUTPUT
           
           echo "Detected PRs:"
           echo "$PR_LINKS"
+
+          echo "aaaa"
  
       # 步骤3: 验证PR状态
       - name: Validate PRs
