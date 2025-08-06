@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ORCHESTRATOR_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN01 }}
-      MANIFEST_REPO: https://github.com/blueos-repo/manifests
+      MANIFEST_REPO: https://github.com/mogxtest/manifests
       
     steps:
       # 步骤1: 初始设置和状态通知
@@ -137,11 +137,10 @@ jobs:
         run: |
           mkdir -p blueos
           cd blueos
-          repo init -u $MANIFEST_REPO -m blueos.xml
+          repo init -u $MANIFEST_REPO -m manifest.xml
            
           # 使用深度克隆和缓存优化
-          repo sync -j8 --no-tags --optimized-fetch --force-sync \
-            --current-branch --no-clone-bundle
+          repo sync -j8
  
       # 步骤6: 应用PR变更
       - name: Apply PR changes
