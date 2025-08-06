@@ -54,7 +54,7 @@ jobs:
           echo "$PR_LINKS"
        
           # 如果没有链接，添加当前PR
-          if [ -z "$PR_LINKS" ]; then
+          if [ -z "$PR_LINKS" ] && [ -n "${{ github.event.issue.pull_request }}" ]; then
             CURRENT_PR="https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number }}"
             echo "CURRENT_PR"
             echo $CURRENT_PR
@@ -62,9 +62,10 @@ jobs:
           fi
           
           # 转换为JSON数组并用单行格式输出
-          PR_LINKS_JSON=$(echo "${PR_LINKS}" | jq -R -s 'split("\n") | map(select(. != "")) | @json')
-          echo "pr_links=${PR_LINKS_JSON}"
-          echo "pr_links=${PR_LINKS_JSON}" >> $GITHUB_OUTPUT
+          PR_LINKS_ARRAY=$(echo "$PR_LINKS" | jq -R -s 'split("\n") | map(select(. != ""))')
+          pr_links_formatted=$(echo "$PR_LINKS_ARRAY" | jq '. | join(",")')
+          echo "pr_links=[${pr_links_formatted}]" >> $GITHUB_OUTPUT
+          echo "pr_links=${pr_links}"
           
           echo "Detected PRs:"
           echo "$PR_LINKS"
