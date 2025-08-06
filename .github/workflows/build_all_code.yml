@@ -206,9 +206,12 @@ jobs:
         id: build-result
         run: |
           if [ $? -eq 0 ]; then
-            echo "::set-output name=status::success"
-            echo "::set-output name=message::✅ BlueOS 构建成功"
-            echo "::set-output name=label::build-success"
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=BlueOS 构建成功" >> $GITHUB_OUTPUT
+            echo "label=build-success"  >> $GITHUB_OUTPUT
+            # echo "::set-output name=status::success"
+            # echo "::set-output name=message::✅ BlueOS 构建成功"
+            # echo "::set-output name=label::build-success"
           else
             echo "::set-output name=status::failure"
             echo "::set-output name=message::❌ BlueOS 构建失败"
@@ -218,7 +221,7 @@ jobs:
       # 步骤9: 发送最终通知
       - name: Final notification
         env:
-          GITHUB_TOKEN: ${{ secrets.ORCHESTRATOR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ORCHESTRATOR_TOKEN01 }}
         run: |
           # 构建结果参数
           STATUS='${{ steps.build-result.outputs.status }}'
