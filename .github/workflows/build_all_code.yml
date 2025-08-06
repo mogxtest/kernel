@@ -52,10 +52,12 @@ jobs:
           sudo apt-get install -y jq
           # 提取所有PR链接
           PR_LINKS=$(echo "${{ github.event.comment.body }}" | grep -oE 'https://github.com/[^/ ]+/pull/[0-9]+' | sort | uniq)
+          echo ${PR_LINKS}
        
           # 如果没有链接，添加当前PR
           if [ -z "$PR_LINKS" ] && [ "${{ github.event.issue.pull_request }}" == "true" ]; then
             CURRENT_PR="https://github.com/${{ github.repository }}/pull/${{ github.event.issue.number }}"
+            echo ${CURRENT_PR}
             PR_LINKS=${CURRENT_PR}
           fi
           
